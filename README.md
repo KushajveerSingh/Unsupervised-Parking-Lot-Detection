@@ -1,7 +1,23 @@
 # Unsupervised Learning for Parking Detection
-By Kushajveer Singh ([linkedin](https://www.linkedin.com/in/kushaj/), [blog](https://medium.com/@kushajreal), [github](https://github.com/KushajveerSingh), [twitter](https://twitter.com/Kkushaj))
+By Kushajveer Singh ([https://kushajveersingh.github.io](https://kushajveersingh.github.io/))
 
 This repo is the official pytorch implementation of "**Upsupervised Learning for Parking Detection**" (arXiv paper and blog post coming soon). It is based on a **modular approach** where you can change the blocks according to your need.
+
+Currently, this repo implements the following
+* Parking Space Detection
+* Pakring Space Occupancy Detection
+* Color of car in a parking space
+* Pose of car in a parking space
+
+# Table Of Contents
+1. [Introduction](#introduction)
+2. [General overview of my approach](#general-overview-of-my-approach)
+3. [Details of various modules](#details-of-various-modules)
+4. [How to extend these modules](#how-to-extend-these-modules)
+5. [Model Improvements](#model-improvements)
+5. [Directory Structure](#directory-structure)
+6. [Testing Environment](#testing-environment)
+7. [How to run on your own data](#how-to-run-on-your-own-data)
 
 # Introduction
 Parking Space Detection is a very important task in the field of computer vision as there is a general dearth of parking spaces toady and it takes time to explore the parking spaces as parking spots start filling up. By solving this problem we can reduce the car emissions in urban centers by reducing the need for people to needlesly circle city blocks for parking. It also permits cities to carefully manage their parking supply and finally it reduces the daily stress associated with parking spaces.
@@ -17,12 +33,12 @@ My implementation can be divided into these three modules:
 
 3. **Classification Module** :- Use the processed labels/bounding_boxes to tell if that parking space is occupied or not.
 
-# Details of various modules:
-1. **Object Detection Module** :- This module is responsible for detecting the cars in an image. Why is this important? Because it is the cheapest way of getting the location of parking spaces directly from an image. This modele only assumes that the images that you provide for learning the parking spaces should not contain images of cars that are not in a parking space.
+# Details of various modules
+1. **Object Detection Module** :- This module is responsible for detecting the cars in an image. Why is this important? Because it is the cheapest way of getting the location of parking spaces directly from an image. This module only assumes that the images that you provide for learning the parking spaces should not contain images of cars that are not in a parking space.
 
-    This assumption is necessary so as to reduce the complexity of the task. If we were to remove this assumption than techniques like motion tracking would have to be used and also as we are not using fine-tuned models there would be problems with that also.
+    This assumption is necessary so as to reduce the complexity of the task. If we were to remove this assumption than techniques like motion tracking would have to be used and also as we are not using fine-tuned models there would be problems with that also. Or using a count based approach, but that would significantly increase the labeling cost.
 
-    Why not use fine-tuned model? You can finetune your model. But in order to show the generalization power of this approach, I refrained from finetuning my model. So t oovercome the limitations of pretrained models, I use the following approaches:
+    Why not use fine-tuned model? You can finetune your model. But in order to show the generalization power of this approach, I refrained from finetuning my model. So to overcome the limitations of pretrained models, I use the following approaches:
     * Use multiple images for getting the parking spaces
     * Split the image into a 3x3 grid of overlapping regions so as to get more occurate bounding boxes. 
     
@@ -30,17 +46,23 @@ My implementation can be divided into these three modules:
 
     By using this technique there is no need to do any kind of feature engineering for getting the parking spaces, as the earlier research focused on using lane markings as an indicator of parking spaces, but as you can see in the bottom right of the figure there are some cases, where there are no lane markings but they are considered as standard parking spaces.
 
-    <img src='extra/fe_drawback_edit.jpg' width=70%>
+    <img src='docs/Extra/fe_drawback_edit.jpg' width=70%>
 
-2. **Label Processing Module** :- I use label to refer to the bounding boxes produced by the object detection model. Now to process the labels/bounding boxes we require this module. This module mainly solves the following:
+2. **Label Processing Module** :- I use *label* to refer to the bounding boxes produced by the object detection model. Now to process the labels/bounding boxes we require this module. This module mainly solves the following:
     * Combine bounding boxes from multiple images
     * Combine bounding boxes from the multiple splits of an image with the original image
-    * Techniques to remove all the redundant and overlapping bounding boxes and cleaning the labels.
+    * Technique to remove the redundant and overlapping boudning boxes from the images
 
-3. **Classification Module** :- This module takes as input the processed labels as produced by the Label Processing Module and classifies the patches of bounding boxes as occupied or not.
+3. **Classification Module** :- This a combination of 3 models. All the models have been trained on custom datasets, which you can find in the `data` folder.
+
+    First module is responsible for the classification of patches (that we get after the Label Processing Module) as occupied or not. This is a Resnet50 with a custom head.
+
+    Second module is responsible for getting the color of the car in that patch. The colors include, White-0, Silver-1, Black-2, Grey-3, Blue-4, Red-5, Brown-6, Green-7, Others-8. This is a Resnet50 with a custom head.
+
+    Third module is responsible for getting the pose of the car in the patch. There are three poses possible,front facing (0), back facing (1) or side ways (2).
 
 # How to extend these modules
-1. **Object Detection Module** :- This repo used [M2Det](https://arxiv.org/abs/1811.04533) as a object detection model. If you want to use some other model for object detection all you need to do is clone the source code of the model and run the inference script.
+1. **Object Detection Module** :- This repo used [M2Det](https://arxiv.org/abs/1811.04533) as a object detection model. If you want to use some other model for object detection all you need to do is clone the source code of the model and run the inference script provided in the README of the repo.
 
     1. Refer to the [Directory Structure](#directory-structure) for details on how to setup up your directory.
     2. Clone the source code of your object detction model in `src/`
@@ -50,105 +72,108 @@ My implementation can be divided into these three modules:
         pickle.dump(locs)
         f.close()
         ```
-        Refer to `src/m2det/parking_detect_split.py` on how I modified the script for the above cases.
+        Refer to `training/m2det/detect_parking_spaces.py` on how I modified the script for the above cases.
 
-2. **Label Processing Module** :- No changes need to be made here
+2. **Label Processing Module** :- No changes need to be made here.
 
-3. **Classification Module** :- `src/scripts/classify_patches.py` performs this step and the following loads the desired model.
+3. **Classification Module** :-
+    To use another model you just need to define a function that returns your model. The code for my `get_color_model()` is as follows
     ```python
-    model = load_model()
-    ```
-
-    So to use another model you just need to define a function that returns your model. The code for my `load_model()` is as follows
-    ```python
-    def load_model():
+    def get_color_model():
         # By default the model is loaded on CPU
         model = resnet50()
-        model.load_state_dict(torch.load('src/scripts/f_classifier.pth'))
+        model.load_state_dict(torch.load('training/color_classifier.pth'))
         model.eval()
         return model
     ```
 
+# Model Improvements
+1. [EfficientNet](https://ai.googleblog.com/2019/05/efficientnet-improving-accuracy-and.html):- It can be considered as the next revolutionary model after ResNet. It shows promising results. It is officially implemented in Tensorflow, but work is going on to reproduce the training results on Imagenet in PyTorch. This model with one-eight of parameters as Resnet-152 has better top-1 accuracy.
+
+2. Apart from Classification models, an object detection model with EfficientNet can also be made. 
+
+3. I have previously tested with YOLO and RefineNet models for my Object Detection Module also, and the results are similar. It is possibly due to the powerful Label Processing Module.
+
+    ***Note**: The only reason I used M2Det model here, was because it was a new paper at that time and I was very impressed by the technique that they discussed in the paper.*
+
+
 # Directory Structure
-To make things easier I made the following directory structure. There are two main folder `Data/` and `src/`. 
-
-The `Data/` folder contains the following:
-* labels :- This folder contains all the labels/bounding_boxes that our object detection model would produce. This would also contain the labels processed by the Label Processing Module. The labels are written as binary pickled files by default. Every label has the following terminology 
-    * `{name_of_parking_space}.txt`for the labels produced by object detection moduule (e.b.`pakring1.txt`)
-    * `{name_of_parking_space}_processed.txt` for the labels produced by the label processing module (e.b. `parking1_processed.txt`)
-* folders for each parking space. I named all my parking spaces as `parking1`, `parking2`, and so on. In case I split the image into a 3x3 grid then the folder looks like `parking1_split`
-* parking1 :- Each parking space has further 2 folders
-    * train :- these contains the images that I use for getting the parking spaces for that parking space. By default various results are also stored here by default.
-        1.  *_m2det.jpg :- These are the images saved by m2det object detection model with the bounding
-        boxes as predicted by m2det.
-        2.  *_split.jpg :- These are the images that we get after spliting our original image into 
-            smaller 3x3 images
-        3.  *_result.jpg :- These are the images that are saved after processing the labels. So these
-            images contain the final bounding boxes that our classifier model will use.
-    * test :- These contains the images that I use for testing my model for that parking space. So if an image has the following name `image1.jpg` then the result of my model is stored as `image1_result.jpg`.
-
-The `src/` has the following structure
-* m2det :- This is the github clone of the official m2det implementation. Redundant code has been removed and the model has been converted to PyTorch1.0
-* scripts :- All the scripts that I use in this project.
-
-# Requirements
-* Python 3.6+
-* Pytorch 1.0+
-* skimage
-* imageio
-* OpenCV
-
-# Install
-1. Install PyTorch 1.0 and torchvision from the following [official instructions](https://pytorch.org/).
-2. To install the other dependencies use the following instructions
-    ```
-    # If using pip
-    pip install numpy
-    pip install matplotlib
-    pip install imageio
-    pip install scikit-image
-    pip install opencv-python
-    ```
-
-    ```
-    # If using conda
-    conda install -c anaconda numpy
-    conda install -c conda-forge matplotlib
-    conda install -c conda-forge opencv
-    conda install -c menpo imageio 
-    conda install -c conda-forge scikit-image
-    ```
-3. Download the m2det [official weights](https://drive.google.com/file/d/1NM1UDdZnwHwiNDxhcP-nndaWj24m-90L/view) and place them in `src/m2det/weights/`.
-
-# Software environment which I used for testing
-* Python 3.7.3
-* PyTorch 1.0.1
-* CUDA 10.0
-* CUDNN 7.3.1
-* OpenCV 4.0
-* skimage 0.15.0
-* imageio 2.5.0
-
-# How to test for own parking space
-1. Follow the [Directory Structure](#directory-structure) to setup your own parking space. For this example I use `parking1` as my parking space.
+1. `data` folder:
     
-    So I created folder `Data/parking1` and then create `Data/parking1/train` and `Data/parking1/test`. Place the images for getting the parking space in the `train` folder and the images for testing in the `test` folder.
+    * `color` and `Color`. These folders contain the custom dataset that I used to train my model for color detection.  I first trained on `color` and then fine-tuned on `Color`.
 
-2. To split the images run
-    ```
-    python src/scripts/split_images.py -f=parking1
-    ```
-3. Now we use Object Detection Module i.e. get M2Det predictions.
-    ```
-    python src/m2det/parking_detect_split.py -f=parking1 --save --show
-    ```
-4. Now we use the Label Processing Module
-    ```
-    python src/scripts/process_labels.py -f=parking1
-    ```
-5. Now we use the Classification Module
-    ```
-    python src/scripts/classify_patches.py -f=parking1 --show --save --cuda
-    ```
+    * `Pose` contains the custom dataset that I used for detecting the pose of a car in an image.
 
-For knowing what these scripts do I have a DEMO.md is provided. But the the code that DEMO.md used is slightly different from the above cases. It uses an alternate implementation where you don't want to split the images.
+    * `images` contains `out.mp4` and `test.jpg`. `out.mp4` is used to get the locations of parking spaces in an image and `test.jpg` is used to test our model for that parking space location.
+
+    * `annotations` contains `annotations.json` which contains the label file for `test.jpg`
+
+    * The temporary datasets are also created in this directory. (Details for it are available further)
+
+2. `docs` folder:
+
+    * `README.md`
+    * `presentation.pdf` or `presentation.odf`
+    * `Extras`: These are the images that I included in the presentation and README.
+
+3. `training` folder:
+
+    * `m2det` This if a github clone of the official [repo](https://github.com/qijiezhao/M2Det), except the code has been converted from PyTorch0.4 to PyTorch 1.1 and all the redundant code has been removed. A custom inference script, `detect_parking_spaces.py` has also been created to meet my specific needs.
+
+    * The weights for the Pose detection, Color Detection and Occupancy Detection models are stored here as `*_classifier.pth`
+
+    * Scripts for creating the models are also placed here as `*_classifier.py`
+
+    * `inference.py` The inference script I used to get the final predictions from the models
+
+    * `notebooks` folder. The jupyter notebooks I used when coding up this project. (not maintained)
+
+4. `requirements.txt`. The main requirements for this project include
+
+    * PyTorch
+    * torchvision
+    * Python OpenCV
+    * imageio
+    * Numpy
+    * Matplotlib
+    
+    There are some additional dependencies but they are only needed for M2Det.
+
+5. `model.py`. Main script that contains wrapper for the complete project.
+
+# Testing Environment
+* Ubuntu 18.04 LTS
+* Python 3.7.3
+* Numpy 1.16.4
+* matplotlib 3.1.0
+* OpenCV 4.0.0
+* imageio 2.5.0
+* PyTorch 1.1.0
+* torchvision 0.3.0
+
+# How to run on your own data
+You have to manually download the object-detection model weights. You can download the weights from this [link](https://drive.google.com/file/d/1NM1UDdZnwHwiNDxhcP-nndaWj24m-90L/view). After downloading them place the weights in `training/m2det/weights`.
+
+`model.py` takes the following arguments. These arguments are same for the `Model` class defined in the `model.py`.
+
+| Name | default | description|
+| -- | -- | -- |
+| dir | data/temp | Name of directory to store intermediate results like detection result images|
+| make_splits | False | If true, then all your images would be split into 3x3 grid and the training would be done on those 3x3 + 1(original image) |
+| gpu | False | If True, then the training is done on GPU |
+| detection_thresh | 0.2 | The detection thresold for the object detection model, so as to detect the cars in the image |
+| detection_save | False | If True save the images with predicted bounded boxes to disk (location is `dir/detection_images`) |
+| detection_show | False | If True show the images with the predicted bounded boxes in a new window (there is some delay also) |
+| label_thresh | 0.5 | The threshold for the maximum relative overlap between two bounding boxes that is allowed |
+| label_save | False | If True save the images with the merged bounding boxes to disk (location is `dir/labels_images`)
+| label_show | False | If True show the image with the merged bounding boxes in a new window |
+
+As an example, I already have the video and image input in the `data/images` folder. So to run my program on this data, use this command
+```
+python model.py --video-path=data/images/out.mp4 
+```
+
+The `Model` class follows the same structure. Ideally, you don't need to change any values in the constructor. You can directly call the `Model.predict()` method
+```python
+    def predict(self, video_path, x:np.ndarray=None):
+```

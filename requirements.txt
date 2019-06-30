@@ -1,0 +1,14 @@
+numpy
+opencv-python
+pathlib
+matplotlib
+torch
+torchvision 
+imageio
+importlib
+addict
+uuid
+Pillow
+termcolor
+scikit-image
+pathlib
