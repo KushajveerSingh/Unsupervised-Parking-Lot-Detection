@@ -5,7 +5,7 @@ This repo is the official pytorch implementation of "**Upsupervised Learning for
 
 Currently, this repo implements the following
 * Parking Space Detection
-* Pakring Space Occupancy Detection
+* Parking Space Occupancy Detection
 * Color of car in a parking space
 * Pose of car in a parking space
 
