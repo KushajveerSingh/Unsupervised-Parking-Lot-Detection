@@ -1,8 +1,6 @@
 # Unsupervised Learning for Parking Detection
 By Kushajveer Singh ([https://kushajveersingh.github.io](https://kushajveersingh.github.io/))
 
-**Note**:- Semi-supervised is a better word than unsupervised. I am not changing it in the title as in the competition I used Unsupervised for my final submission.
-
 This repo is the official pytorch implementation of "**Upsupervised Learning for Parking Detection**". It is based on a **modular approach** where you can change the blocks according to your need.
 
 Currently, this repo implements the following
